@@ -1,0 +1,28 @@
+Package: deepsurrogate
+Type: Package
+Title: Warped gradient-enhanced GP surrogate models for intractable likelihoods
+Version: 0.1.0
+Date: 2021-04-30
+Authors@R: c(
+    person("Quan", "Vu", role=c("aut","cre","cph"), 
+       email = "quanv@uow.edu.au", comment = c(ORCID = "0000-0001-9321-1875")),
+    person("Matt", "Moores", role = c("aut", "ths"),
+       email = "mmoores@gmail.com", comment = c(ORCID = "0000-0003-4531-3572")),
+    person("Andrew", "Zammit-Mangion", role=c("aut", "ths"),
+       email = "azm@uow.edu.au", comment = c(ORCID = "0000-0002-4164-6866")))
+Description: Code for buiding and fitting the warped gradient-enhanced Gaussian
+    process surrogate models for intractable likelihoods.
+License: GPL (>= 2) 
+Depends:
+    R (>= 3.5.0)
+Imports:
+    reticulate (>= 1.10), 
+    tensorflow (>= 1.5),
+    data.table,
+    dplyr,
+    Matrix,
+    methods
+SystemRequirements: TensorFlow (https://www.tensorflow.org/)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
