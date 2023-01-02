@@ -6,7 +6,7 @@ source('scripts/utils.R')
 registerDoParallel(cores = detectCores()) ## 64L
 
 ## Summary stats for the IceFloe image
-data("icefloe")
+load("data/data_icefloe.rda")
 summarystats1 <- sum(IceFloe == F) - sum(IceFloe == T)
 summarystats2 <- CountNeighbors(IceFloe)
 summary_stats <- c(summarystats1, summarystats2)
@@ -32,7 +32,7 @@ syn_like <- c(syn_like.1, syn_like.2)
 beta_hat <- c(newdata$beta1[which.max(syn_like)],
               newdata$beta2[which.max(syn_like)]) ## estimated maximum likelihood estimator
 
-set.seed(1)
+set.seed(2)
 t1 <- proc.time()
 idx <- sample(1:nrow(newdata), size = 2000, prob = syn_like / sum(syn_like),
               replace = T)
@@ -79,7 +79,7 @@ for (i in 1:nrow(beta)){
 log_weights <- summary_stats[1] * beta[,1] + summary_stats[2] * beta[,2] +
   summary_stats_sim1 * beta_hat[1] + summary_stats_sim2 * beta_hat[2] +
   (- summary_stats_sim1 * beta[,1]) +  (- summary_stats_sim2 * beta[,2]) +
-  (- syn_like)
+  (- log(syn_like))
 
 weights <- exp(log_weights - max(log_weights))
 weights_norm <- weights / sum(weights)
