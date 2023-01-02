@@ -24,34 +24,68 @@ mean1 <- mean(df$mean)
 df$mean <- df$mean - mean1
 
 newdata <- data.frame(beta = df_test$beta)
-load('results/potts_simulated_data.rda')
+load('results/potts_simulated_data_1.rda')
 
+# Prediction for GP surrogate models
 syn_like_GP <- synthetic_likefnc_GP_1D(d_GP, newdata, summary_stats, mean1)
 syn_like_GP2 <- synthetic_likefnc_GP_1D(d_GP2, newdata, summary_stats, mean1)
 syn_like_GP3 <- synthetic_likefnc_GP_1D_stat(d_GP3, newdata, summary_stats, mean1)
+
+# Prediction for PFAB surrogate model
+load("results/potts_Stan.rda")
+# Predict mean
+ft <- function(t, tC, e0, ecrit, v0, vmax1, vmax2, phi1, phi2) {
+  sqrtBcritPhi = sqrt(tC)*phi1
+  fval <- numeric(length(t))
+  for (i in 1:length(t)) {
+    if (t[i] <= tC) {
+      sqrtBdiffPhi = sqrt(tC - t[i])*phi1
+      fval[i] <- e0 + t[i]*v0 - ((2*(vmax1-v0))/(phi1^2))*((sqrtBcritPhi + 1)/exp(sqrtBcritPhi) - (sqrtBdiffPhi + 1)/exp(sqrtBdiffPhi))
+    } else {
+      sqrtBdiff = sqrt(t[i] - tC)
+      fval[i] <- ecrit - ((2*vmax2)/phi2)*(sqrtBdiff/exp(phi2*sqrtBdiff) + (exp(-phi2*sqrtBdiff) - 1)/phi2);
+    }
+  }
+  return(fval)
+}
+# Predict variance
+dfdt <- function(t, tC, V0, Vmax1, Vmax2, r1, r2) {
+  ifelse(t < tC,
+         V0 + (Vmax1-V0)*exp(-r1*sqrt(tC - t)),
+         Vmax2*exp(-r2*sqrt(t - tC)))
+}
+# Prediction
+para <- get_posterior_mean(fit, pars=c("a","b","ecrit","vmaxLo","vmaxHi"))[,5]
+mean_PFAB <- ft(df_test$beta, bcrit, E0, 
+                para["ecrit"], V0, para["vmaxLo"], para["vmaxHi"], para["a"], para["b"])
+var_PFAB <- dfdt(df_test$beta, bcrit, V0, para["vmaxLo"], para["vmaxHi"], para["a"], para["b"])
 
 ## Calculate MAE
 MAE1 <- mean(abs(df_test$mean - syn_like_GP[[1]]))
 MAE2 <- mean(abs(df_test$mean - syn_like_GP2[[1]]))
 MAE3 <- mean(abs(df_test$mean - syn_like_GP3[[1]]))
-
+MAE4 <- mean(abs(df_test$mean - mean_PFAB))
+  
 ## Calculate RMSPE
 RMSE1 <- sqrt(mean((df_test$mean - syn_like_GP[[1]])^2))
 RMSE2 <- sqrt(mean((df_test$mean - syn_like_GP2[[1]])^2))
 RMSE3 <- sqrt(mean((df_test$mean - syn_like_GP3[[1]])^2))
+RMSE4 <- sqrt(mean((df_test$mean - mean_PFAB)^2))
 
 ## Calculate MAE
 MAE1_v <- mean(abs(df_test$var - syn_like_GP[[2]]))
 MAE2_v <- mean(abs(df_test$var - syn_like_GP2[[2]]))
 MAE3_v <- mean(abs(df_test$var - syn_like_GP3[[2]]))
+MAE4_v <- mean(abs(df_test$var - var_PFAB))
 
 ## Calculate RMSPE
 RMSE1_v <- sqrt(mean((df_test$var - syn_like_GP[[2]])^2))
 RMSE2_v <- sqrt(mean((df_test$var - syn_like_GP2[[2]])^2))
 RMSE3_v <- sqrt(mean((df_test$var - syn_like_GP3[[2]])^2))
+RMSE4_v <- sqrt(mean((df_test$var - var_PFAB)^2))
 
-pred <- c(MAE1, MAE2, MAE3, RMSE1, RMSE2, RMSE3,
-          MAE1_v, MAE2_v, MAE3_v, RMSE1_v, RMSE2_v, RMSE3_v)
+pred <- c(MAE1, MAE2, MAE3, MAE4, RMSE1, RMSE2, RMSE3, RMSE4,
+          MAE1_v, MAE2_v, MAE3_v, MAE4_v, RMSE1_v, RMSE2_v, RMSE3_v, RMSE4_v)
 save(pred, file = "results/potts_prediction_results.rda")
 
 plot <- ggplot(data = df_test) + 
